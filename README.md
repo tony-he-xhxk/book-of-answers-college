@@ -6,7 +6,7 @@
 
 - 在线使用：**<https://answers.xingheling.cn>**
 - 技术栈：HTML + CSS + 原生 JavaScript，**零依赖、零构建**
-- 当前收录 **51 条**答案，持续补充中
+- 当前收录 50+ 条答案
 
 ---
 
