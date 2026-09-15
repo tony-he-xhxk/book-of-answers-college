@@ -1,0 +1,33 @@
+{
+  "name": "book-of-answers-college",
+  "version": "1.0.0",
+  "private": true,
+  "description": "答案之书 · 大学生专供版 —— 一本会翻页、会出声的在线答案之书",
+  "keywords": [
+    "answer-book",
+    "answers",
+    "css3d",
+    "vanilla-js",
+    "no-dependencies"
+  ],
+  "homepage": "https://answers.xingheling.cn",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tony-he-xhxk/book-of-answers-college.git"
+  },
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "node -e \"require('child_process').execFileSync(process.env.PYTHON||'python',['tools/build_data.py'],{stdio:'inherit'})\"",
+    "test": "node tools/selftest.js && node tools/browser_verify.js",
+    "selftest": "node tools/selftest.js",
+    "verify": "node tools/browser_verify.js",
+    "probe": "node tools/reveal_probe.js",
+    "serve": "node tools/serve.js"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.63.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

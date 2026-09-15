@@ -1,0 +1,30 @@
+# ============================================================
+# 行尾规范化
+# ------------------------------------------------------------
+# 仓库内统一存 LF，检出时按类型还原。这样 Windows / macOS / Linux
+# 三边 clone 下来都正常，也不会因为编辑器的自动转换产生满屏 diff。
+#
+# 注意：这里显式指定 *.bat 用 CRLF，是为了盖过本机可能存在的
+# core.autocrlf 设置 —— 批处理文件在 LF 下，含 if (...)/goto 的多行
+# 块可能出现解析异常，用 CRLF 最稳。
+# ============================================================
+
+* text=auto eol=lf
+
+# Windows 批处理必须 CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 二进制文件不做行尾转换
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.ico  binary
+*.woff binary
+*.woff2 binary
+*.ttf  binary
+*.otf  binary
+*.pdf  binary
+*.zip  binary

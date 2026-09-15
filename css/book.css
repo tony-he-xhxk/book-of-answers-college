@@ -1,0 +1,835 @@
+/* ==========================================================================
+   答案之书 · 大学生专供版
+   book.css —— 书体结构、3D 场景、皮革/烫金/纸张材质
+   ========================================================================== */
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+:root {
+  /*
+   * ---- 尺寸：书体的宽高只有一个真源 ----
+   * fit.js 会在首帧绘制前按视口实测值改写 --book-h / --book-ratio（写成
+   * documentElement 的内联 style，优先级高于本文件里的任何声明）。下面这行
+   * 只是 JS 没跑起来时的静态兜底，别在这里调尺寸 —— 会看不出效果。
+   *
+   * 书宽由长宽比派生，书内所有排版尺寸都是 calc(var(--book-h) * k)，
+   * 因此改一个 --book-h 就能让整本书连同字号等比缩放。
+   */
+  --book-ratio: 1.58;
+  --book-h: clamp(300px, 58vh, 620px);
+  --book-w: calc(var(--book-h) * var(--book-ratio));
+  --half-w: calc(var(--book-w) / 2);
+
+  /* ---- 深墨绿皮革 ---- */
+  --leather: #14392d;
+  --leather-dk: #0a231a;
+  --leather-lt: #1e5542;
+
+  /* ---- 烫金 ---- */
+  --gold: #c9a227;
+  --gold-lt: #eeda9c;
+  --gold-dim: rgba(201, 162, 39, .55);
+
+  /* ---- 暖白纸张 ---- */
+  --paper: #f7f1e3;
+  --paper-edge: #dccdb0;
+  --ink: #2a251e;
+  --ink-soft: #6f6555;
+
+  /* ---- 深色书桌 ---- */
+  --desk: #222826;
+
+  --font-serif: "Songti SC", "STSong", "Source Han Serif SC", "Noto Serif SC",
+                "SimSun", "Georgia", serif;
+  --font-sans: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB",
+               system-ui, -apple-system, sans-serif;
+
+  --ease-book: cubic-bezier(.42, 0, .25, 1);
+
+  /*
+   * 书本开合的时长 —— 封面过渡与左半页的关键帧共用这一个值。
+   * 两者必须同源：leftPageIn / leftPageOut 的百分比是按封面的实际转角标定的，
+   * 一旦这里的时长和封面的 transition 时长不一致，时序立刻错位、幽灵页回归。
+   */
+  --dur-book: 1100ms;
+
+  /* 纸张纤维噪点（SVG turbulence，无需外部素材） */
+  --paper-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--desk);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 桌面顶部打光 + 底部压暗 */
+.desk-glow {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 1100px 720px at 50% -10%, rgba(255, 243, 214, .12), transparent 62%),
+    radial-gradient(ellipse 900px 640px at 50% 114%, rgba(0, 0, 0, .55), transparent 66%);
+}
+
+.app {
+  position: relative;
+  z-index: 1;
+  /*
+   * 宽度由 fit.js 按书体实际宽度反推（书宽 + 左右 padding），好让顶栏与
+   * 控制条的左右边缘跟书对齐，而不是在一个更宽的容器里飘着。
+   * JS 没跑起来时退回 1180px 的静态版式。
+   */
+  width: var(--app-w, 1180px);
+  max-width: 100%;
+  max-height: 100vh;
+  max-height: 100dvh;
+  padding: clamp(14px, 2.8vh, 34px) clamp(16px, 2.4vw, 40px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(10px, 2vh, 24px);
+}
+
+/* --------------------------------------------------------------------------
+   顶栏
+   -------------------------------------------------------------------------- */
+
+.topbar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: clamp(15px, 1.9vh, 19px);
+  font-weight: 500;
+  letter-spacing: .32em;
+  text-indent: .32em;
+  color: rgba(238, 218, 156, .78);
+}
+
+.sound-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(238, 218, 156, .2);
+  background: rgba(255, 255, 255, .035);
+  color: rgba(247, 241, 227, .68);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  letter-spacing: .06em;
+  cursor: pointer;
+  transition: border-color .2s, color .2s, background .2s;
+}
+.sound-btn:hover {
+  border-color: rgba(238, 218, 156, .45);
+  color: rgba(247, 241, 227, .95);
+  background: rgba(255, 255, 255, .06);
+}
+
+.sound-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #5DCAA5;
+  box-shadow: 0 0 0 3px rgba(93, 202, 165, .16);
+  transition: background .2s, box-shadow .2s;
+}
+.sound-btn[aria-pressed="false"] .sound-dot {
+  background: #888780;
+  box-shadow: 0 0 0 3px rgba(136, 135, 128, .13);
+}
+
+/* --------------------------------------------------------------------------
+   3D 舞台与书体
+   -------------------------------------------------------------------------- */
+
+.stage {
+  /*
+   * 透视距离取「半页宽的固定倍数」，而不是写死 px。
+   *
+   * 写死 px 的坑：书被 fit.js 放大后，半页宽随之变大、透视相对变浅，
+   * 叶片转到 90° 时离视点最近，会被投放过大的倍数，越过书体上边界。
+   * 12 是权衡后的取值 —— 倍数越大越接近正交投影，叶片上顶越少、
+   * 但翻页的纵深越平。实测上顶比例：c=7.2 → 0.177，c=10 → 0.153，c=12 → 0.145。
+   *
+   * ⚠️ 改这个数必须同步改 js/fit.js 里的 K_WIDE（上顶比例），
+   *    否则顶部预留量对不上，叶片会被屏幕顶边切平。
+   *    重测方法见 .shots/measure_overshoot.js。
+   */
+  perspective: calc(var(--half-w) * 12);
+  perspective-origin: 50% 42%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.book {
+  position: relative;
+  width: var(--book-w);
+  height: var(--book-h);
+  transform-style: preserve-3d;
+  /* 闭合：整本右移四分之一页宽，使封面恰好落在视口中央 */
+  transform: rotateX(7deg) translateX(calc(var(--half-w) * -0.5));
+  transition: transform var(--dur-book) var(--ease-book);
+}
+
+.book[data-state="open"],
+.book[data-state="idle"],
+.book[data-state="drawing"],
+.book[data-state="showing"] {
+  transform: rotateX(7deg) translateX(0);
+}
+
+.spread {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  transform-style: preserve-3d;
+  border-radius: 3px;
+  /* 投影不放在这里 —— 见下方 .half-left / .half-right 的说明 */
+}
+
+/*
+ * 页口厚度与环境投影由两个半页各自承担，而不是画在整幅 .spread 上。
+ *
+ * 原因：box-shadow 是按元素的边框盒绘制的，与子元素是否可见无关。
+ * 若画在 .spread（占满整本书宽）上，闭合时左半页虽然藏了，它那份页口和
+ * 投影却仍在左侧露出，看上去就像一张灰色的幽灵书页。
+ *
+ * 拆到两半之后，隐藏左半页（opacity: 0）会连同它的 box-shadow 一起隐去，
+ * 这是 CSS 的天然行为，不需要额外的时间判断，因此也就不会再出现
+ * 「幽灵先出现、封面后翻过去」的时序错位。
+ *
+ * 偏移方向朝外（左半页往左上偏、右半页往右上偏），所以中缝处没有投影，
+ * 书口厚度只出现在书的左右外缘和下缘 —— 正是精装书翻开的样子。
+ */
+.half-right {
+  box-shadow:
+    1px 1px 0 #e7ddc6, 2px 2px 0 #e1d5bc, 3px 3px 0 #dbcdb0,
+    4px 4px 0 #d4c4a5, 5px 5px 0 #cdbb99, 6px 6px 0 #c6b28e,
+    7px 7px 0 #bfa983, 8px 8px 0 #b8a078,
+    16px 36px 64px -16px rgba(0, 0, 0, .5),
+    0 10px 26px -10px rgba(0, 0, 0, .4);
+}
+
+.half-left {
+  box-shadow:
+    -1px 1px 0 #e7ddc6, -2px 2px 0 #e1d5bc, -3px 3px 0 #dbcdb0,
+    -4px 4px 0 #d4c4a5, -5px 5px 0 #cdbb99, -6px 6px 0 #c6b28e,
+    -7px 7px 0 #bfa983, -8px 8px 0 #b8a078,
+    -16px 36px 64px -16px rgba(0, 0, 0, .5),
+    0 10px 26px -10px rgba(0, 0, 0, .4);
+}
+
+.half {
+  position: relative;
+  width: 50%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+
+/*
+ * 左半页的显隐
+ *
+ * ⚠️ 这里必须用「关键帧 + 百分比」来控制时机，不能用 transition-delay。
+ *
+ * 封面的缓动是 cubic-bezier(.42, 0, .25, 1)，属于前重后轻：实测它在 37% 处就
+ * 转过 90°、65% 处转过 162°。用固定毫秒的 delay 去配合它，等于假设两者同步，
+ * 实际上封面早就转过去了、左半页才刚开始淡入，于是左侧先冒出一页白色/灰色的
+ * 幽灵，封面随后才翻过去 —— 正是这个问题。
+ *
+ * 关键帧的百分比与封面共用同一段时间轴（--dur-book），无论机器快慢都同步。
+ * 下面的百分比是按封面实测旋转角标定的。
+ */
+
+/* 翻开：封面转过约 156°（62%）之后左半页才浮现；
+   到 92% 时封面已基本落定（约 178°），此时左半页连同它的页口厚度一起就位。 */
+@keyframes leftPageIn {
+  0%, 62%   { opacity: 0; }
+  92%, 100% { opacity: 1; }
+}
+
+/* 合上：封面扫回来之前左半页就得退场。
+   封面在 40% 处已转到 80°（遮不住左半区了），所以 28% 前必须淡完，
+   否则封面合上后左侧会留下一页白色再消失。 */
+@keyframes leftPageOut {
+  0%, 6%    { opacity: 1; }
+  28%, 100% { opacity: 0; }
+}
+
+.half-left {
+  /* 缺省可见；closed / open / closing 三个状态分别覆盖它 */
+  opacity: 1;
+}
+
+.book[data-state="closed"] .half-left {
+  opacity: 0;
+}
+
+.book[data-state="open"] .half-left {
+  animation: leftPageIn var(--dur-book) linear both;
+}
+
+.book[data-state="closing"] .half-left {
+  animation: leftPageOut var(--dur-book) linear both;
+}
+
+/* --------------------------------------------------------------------------
+   纸张
+   -------------------------------------------------------------------------- */
+
+.page,
+.leaf-face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(102deg, rgba(255, 255, 255, .5), rgba(255, 255, 255, 0) 34%),
+    radial-gradient(ellipse at 50% 0%, rgba(255, 253, 246, .5), transparent 62%);
+}
+
+/* 纸纤维噪点 */
+.page::after,
+.leaf-face::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--paper-noise);
+  opacity: .055;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.page-left {
+  background-image:
+    linear-gradient(to right, rgba(146, 116, 62, .13), rgba(146, 116, 62, .03) 34%, transparent 66%),
+    linear-gradient(102deg, rgba(255, 255, 255, .5), rgba(255, 255, 255, 0) 34%);
+}
+
+.page-right {
+  background-image:
+    linear-gradient(to left, rgba(146, 116, 62, .1), rgba(146, 116, 62, .02) 34%, transparent 66%),
+    linear-gradient(102deg, rgba(255, 255, 255, .5), rgba(255, 255, 255, 0) 34%);
+}
+
+/* 中缝沟槽投影 */
+.page-shade {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 16%;
+  pointer-events: none;
+  z-index: 3;
+}
+.page-shade-right {
+  right: 0;
+  background: linear-gradient(to left,
+    rgba(28, 20, 8, .32), rgba(28, 20, 8, .1) 46%, transparent);
+}
+.page-shade-left {
+  left: 0;
+  background: linear-gradient(to right,
+    rgba(28, 20, 8, .32), rgba(28, 20, 8, .1) 46%, transparent);
+}
+
+/* 页码 */
+.folio {
+  position: absolute;
+  bottom: 4.6%;
+  z-index: 4;
+  font-family: var(--font-serif);
+  font-size: clamp(9px, 1.4vh, 12px);
+  letter-spacing: .2em;
+  color: rgba(96, 82, 60, .5);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .5s ease;
+}
+.folio-left { right: 13%; }
+.folio-right { left: 13%; }
+.folio.is-on { opacity: 1; }
+
+/* 页内容容器 */
+.page-face {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  padding: 11% 10%;
+  display: flex;
+  /* 必须为 column：答案页由「装饰短横线 + 文字」两个块组成，
+     flex 默认 row 会让短横线跑到文字左侧并排显示，而不是在其上方。 */
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* --------------------------------------------------------------------------
+   答案文字
+   -------------------------------------------------------------------------- */
+
+.answer-text {
+  margin: 0;
+  max-width: 100%;
+  font-family: var(--font-serif);
+  font-weight: 400;
+  line-height: 1.95;
+  letter-spacing: .04em;
+  color: var(--ink);
+  text-wrap: balance;
+  word-break: break-word;
+}
+
+.answer-text[data-len="xs"] { font-size: calc(var(--book-h) * .078); }
+.answer-text[data-len="s"]  { font-size: calc(var(--book-h) * .066); }
+.answer-text[data-len="m"]  { font-size: calc(var(--book-h) * .055); }
+.answer-text[data-len="l"]  { font-size: calc(var(--book-h) * .047); }
+
+.answer-mark {
+  display: block;
+  width: 34px;
+  height: 1px;
+  margin: 0 auto .82em;
+  background: rgba(42, 37, 30, .3);
+}
+
+/* --------------------------------------------------------------------------
+   假文字页面纹理（快速翻页时掠过的"字迹"）
+   -------------------------------------------------------------------------- */
+
+.fake-lines {
+  position: absolute;
+  inset: 11% 10%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.fake-line {
+  height: calc(var(--book-h) * .0128);
+  margin-bottom: calc(var(--book-h) * .0186);
+  border-radius: 1px;
+  background: #4b4030;
+  opacity: .16;
+}
+
+.fake-gap {
+  height: calc(var(--book-h) * .022);
+}
+
+/* 引导语的弱化样式 */
+.answer-text.is-hint {
+  opacity: .4;
+  line-height: 2.1;
+}
+
+/* --------------------------------------------------------------------------
+   翻页叶片
+   -------------------------------------------------------------------------- */
+
+.leaf-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: translateZ(6px);
+  transform-style: preserve-3d;
+  pointer-events: none;
+}
+
+.leaf {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.leaf-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.leaf-back {
+  transform: rotateY(180deg);
+}
+
+/* 纸背略微透光，比正面暗一档 */
+.leaf-back::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: rgba(122, 100, 64, .07);
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   封面
+   -------------------------------------------------------------------------- */
+
+.cover {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 50%;
+  height: 100%;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  transform: translateZ(22px) rotateY(0deg);
+  transition: transform var(--dur-book) var(--ease-book);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.book[data-state="open"] .cover,
+.book[data-state="idle"] .cover,
+.book[data-state="drawing"] .cover,
+.book[data-state="showing"] .cover {
+  /* 翻开后沉到纸页之下，成为左侧的封面内衬 */
+  transform: translateZ(-6px) rotateY(-180deg);
+  pointer-events: none;
+}
+
+.cover-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  overflow: hidden;
+  border-radius: 2px 6px 6px 2px;
+}
+
+/* 封面正面：深墨绿皮革 + 顶光 */
+.cover-front {
+  background:
+    radial-gradient(ellipse 132% 92% at 26% 6%, rgba(255, 255, 255, .15), transparent 58%),
+    linear-gradient(155deg, var(--leather-lt) 0%, var(--leather) 44%, var(--leather-dk) 100%);
+}
+
+/* 装订沟槽 */
+.cover-front::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 5.5%;
+  background: linear-gradient(to right,
+    rgba(0, 0, 0, .58), rgba(0, 0, 0, .2) 44%, transparent);
+}
+
+/* 皮革高光斜带 */
+.cover-shine {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(118deg,
+    transparent 30%, rgba(255, 255, 255, .06) 43%,
+    rgba(255, 255, 255, .12) 50%,
+    rgba(255, 255, 255, .045) 57%, transparent 70%);
+}
+
+/* 双线烫金框 */
+.cover-frame {
+  position: absolute;
+  inset: 5.5%;
+  border: 1px solid var(--gold-dim);
+  border-radius: 1px;
+}
+.cover-frame::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(201, 162, 39, .24);
+}
+
+.cover-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--book-h) * .022);
+  padding: 0 12%;
+}
+
+/* 烫金标题 */
+.cover-title {
+  font-family: var(--font-serif);
+  font-size: calc(var(--book-h) * .092);
+  font-weight: 500;
+  letter-spacing: .3em;
+  text-indent: .3em;
+  line-height: 1.2;
+  background: linear-gradient(152deg,
+    #f6e9bb 6%, var(--gold) 40%, #8a6c14 60%, #eeda9c 88%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, .55));
+}
+
+.cover-rule {
+  width: calc(var(--book-h) * .16);
+  height: 1px;
+  background: linear-gradient(to right,
+    transparent, var(--gold-dim) 22%, var(--gold-dim) 78%, transparent);
+}
+
+.cover-sub {
+  font-family: var(--font-serif);
+  font-size: calc(var(--book-h) * .0195);
+  letter-spacing: .34em;
+  text-indent: .34em;
+  color: rgba(238, 218, 156, .68);
+}
+
+.cover-edition {
+  font-family: var(--font-sans);
+  font-size: calc(var(--book-h) * .0205);
+  letter-spacing: .26em;
+  text-indent: .26em;
+  color: rgba(238, 218, 156, .42);
+}
+
+.cover-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 8%;
+  text-align: center;
+  font-family: var(--font-sans);
+  font-size: calc(var(--book-h) * .023);
+  letter-spacing: .34em;
+  text-indent: .34em;
+  color: rgba(238, 218, 156, .55);
+  animation: hintPulse 2.8s ease-in-out infinite;
+}
+
+/* 封面内衬（翻开后左半页的底） */
+.cover-back {
+  transform: rotateY(180deg);
+  background: linear-gradient(200deg, #12312a, #0a1f18 58%, #06130f);
+}
+
+.cover-back-inner {
+  position: absolute;
+  inset: 4.5%;
+  border: 1px solid rgba(201, 162, 39, .13);
+  border-radius: 1px;
+}
+
+.cover-back-inner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--paper-noise);
+  opacity: .05;
+  mix-blend-mode: overlay;
+}
+
+/* --------------------------------------------------------------------------
+   控制条
+   -------------------------------------------------------------------------- */
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(10px, 1.6vw, 16px);
+  min-height: 46px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: clamp(10px, 1.5vh, 13px) clamp(24px, 3.2vw, 38px);
+  border-radius: 3px;
+  border: 1px solid transparent;
+  font-family: var(--font-serif);
+  font-size: clamp(13.5px, 1.72vh, 16.5px);
+  letter-spacing: .22em;
+  text-indent: .22em;
+  cursor: pointer;
+  transition: transform .18s ease, background .2s, border-color .2s,
+              color .2s, box-shadow .2s, opacity .2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-primary {
+  background: linear-gradient(160deg, #1c4c3a, var(--leather) 55%, #0d2b21);
+  border-color: var(--gold-dim);
+  color: var(--gold-lt);
+  box-shadow:
+    0 10px 26px -10px rgba(0, 0, 0, .7),
+    inset 0 1px 0 rgba(238, 218, 156, .16);
+}
+.btn-primary:hover {
+  border-color: rgba(238, 218, 156, .85);
+  color: #fff3d0;
+  transform: translateY(-1px);
+  box-shadow:
+    0 14px 32px -10px rgba(0, 0, 0, .78),
+    inset 0 1px 0 rgba(238, 218, 156, .26);
+}
+
+.btn-ghost {
+  background: rgba(255, 255, 255, .035);
+  border-color: rgba(238, 218, 156, .24);
+  color: rgba(247, 241, 227, .8);
+}
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, .075);
+  border-color: rgba(238, 218, 156, .58);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.btn:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.btn:focus-visible,
+.sound-btn:focus-visible,
+.cover:focus-visible {
+  outline: 1px solid var(--gold-lt);
+  outline-offset: 3px;
+}
+
+.foot-hint {
+  margin: 0;
+  font-size: clamp(11px, 1.35vh, 12.5px);
+  letter-spacing: .16em;
+  color: rgba(247, 241, 227, .3);
+  text-align: center;
+  cursor: pointer;
+  padding: 4px 10px;
+  transition: color .2s;
+}
+.foot-hint:hover {
+  color: rgba(238, 218, 156, .6);
+}
+
+/* --------------------------------------------------------------------------
+   提示条
+   -------------------------------------------------------------------------- */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 9vh;
+  z-index: 60;
+  padding: 11px 26px;
+  border-radius: 3px;
+  background: rgba(18, 49, 39, .96);
+  border: 1px solid var(--gold-dim);
+  color: var(--gold-lt);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  letter-spacing: .1em;
+  box-shadow: 0 16px 40px -14px rgba(0, 0, 0, .8);
+  opacity: 0;
+  transform: translate(-50%, 16px);
+  pointer-events: none;
+  transition: opacity .3s ease, transform .3s ease;
+}
+.toast.is-on {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* --------------------------------------------------------------------------
+   手机：退化为单页
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 760px) {
+  :root {
+    /*
+     * 只改长宽比，高度留给 fit.js 算。
+     * 注意别在这里写 --book-h / --book-w —— fit.js 把值写在内联 style 上，
+     * 内联优先级高于样式表，这里的声明会被静默盖掉，白白多一处假真源。
+     */
+    --book-ratio: .82;
+  }
+
+  .book {
+    transform: rotateX(5deg) translateX(0);
+  }
+  .book[data-state="open"],
+  .book[data-state="idle"],
+  .book[data-state="drawing"],
+  .book[data-state="showing"] {
+    transform: rotateX(5deg) translateX(0);
+  }
+
+  .half-left { display: none; }
+  .half-right { width: 100%; }
+
+  .cover {
+    left: 0;
+    width: 100%;
+  }
+
+  /*
+   * 手机上书本只有一页宽，封面翻过去之后会残留在左边缘，
+   * 露出一条墨绿 —— 这里直接让它彻底隐去。
+   */
+  .book[data-state="open"] .cover,
+  .book[data-state="idle"] .cover,
+  .book[data-state="drawing"] .cover,
+  .book[data-state="showing"] .cover {
+    opacity: 0;
+    visibility: hidden;
+    /* 时长与延时都跟着 --dur-book 走，避免与封面自身的旋转不同步 */
+    transition: transform var(--dur-book) var(--ease-book),
+                opacity 200ms ease calc(var(--dur-book) * 0.78);
+  }
+
+  /* 页码改靠下缘居中偏右，单页时左对齐显得突兀 */
+  .folio-right { left: auto; right: 12%; }
+
+  .spread { box-shadow: 0 26px 52px -12px rgba(0, 0, 0, .62); }
+
+  /* 左侧书页被隐藏，页脚提示继续充当合书入口，不再收起 */
+  .foot-hint {
+    font-size: 11.5px;
+    letter-spacing: .1em;
+  }
+}
+
+@media (max-height: 620px) {
+  .foot-hint {
+    font-size: 11px;
+    padding: 2px 8px;
+  }
+}
