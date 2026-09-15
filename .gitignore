@@ -23,6 +23,15 @@ screenshots/
 # 它是测试依赖的唯一版本凭据，提交上去别人才能复现出同版本的 playwright-core。
 node_modules/
 
+# ---------- Python ----------
+# tools/build_data.py 是 Python 脚本。直接运行它不会产生缓存，
+# 但一旦有人 import 它（或跑 py_compile），Python 就会写出这些目录。
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+
 # ---------- 编辑器 / IDE ----------
 .vscode/
 .idea/
