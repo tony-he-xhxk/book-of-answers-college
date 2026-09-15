@@ -146,7 +146,7 @@ book-of-answers-college/
 
 ### 翻页
 
-核心抽象是一张**「叶片」**：每次翻页新建一个 DOM 元素贴在右半页，绕中缝（`transform-origin: left center`）旋转 -180°，动画一结束就移除，把状态固化到底层页面。好处是连翻几十次也不会累积 DOM，也不会出现多份 3D 状态互相打架。
+核心抽象是一张「叶片」：每次翻页新建一个 DOM 元素贴在右半页，绕中缝（`transform-origin: left center`）旋转 -180°，动画一结束就移除，把状态固化到底层页面。好处是连翻几十次也不会累积 DOM，也不会出现多份 3D 状态互相打架。
 
 推进时序只认 `animationend`，`setTimeout` 仅作为「标签页切到后台时动画事件丢失」的兜底 —— 不用它去猜动画时长，因为猜的必然漂移。
 
@@ -220,13 +220,9 @@ PLAYWRIGHT_CORE_PATH=/path/to/playwright-core npm run verify
 
 ---
 
-## 部署
+### LICENSE
 
-托管在 GitHub Pages，自定义域名为 `answers.xingheling.cn`（见根目录 `CNAME`）。
-
-推送 `main` 分支后 GitHub 会自动重新构建并发布。纯静态项目，没有构建步骤，推上去即为最新。
-
-DNS 侧需要一条指向 GitHub Pages 的 `CNAME` 记录，仓库的 **Settings → Pages** 里勾选自定义域名并开启 HTTPS。
+MIT
 
 ---
 
