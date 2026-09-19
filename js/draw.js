@@ -9,6 +9,10 @@
  * 节奏公式：t(i) = base × e^(i × growth)
  *   i=0 → 45ms（急促）  i=5 → 179ms  i=9 → 544ms（停稳）
  * 这套"先快后慢"的减速曲线，比任何渲染精度都更能决定"像不像真的在翻书"。
+ *
+ * 末尾那张牌的露白：最后一次翻页只翻出空白纸面，答案本身交给「墨迹浮现」在
+ * 翻页落定后写上。若把答案页直接铺在叶下，叶片转过 90° 就先静态露一遍，
+ * 落定后再跑一遍 inkReveal，等于同一个答案显示两遍（见 run() 里的注释）。
  */
 (function (global) {
   'use strict';
@@ -164,18 +168,31 @@
           var isLast = (idx === gaps.length - 1);
           var dur = isLast ? 430 : Math.max(38, Math.min(gap * 0.85, 300));
           var front = currentRight;
-          var next = isLast ? answerPage : global.Book.nextFakePage();
-          currentRight = next;
+          /*
+           * 最后一次翻页的叶下页留白，答案等到翻页落定后再写上。
+           *
+           * 叶片是绕着书脊转的：转过 90° 之后右页就露出来了，而 inkReveal
+           * 要等 animationend（约 430ms）才开始。若这时叶下铺着答案页，
+           * 就会先静态看见一遍，再被动画从 opacity: 0 重放一遍。
+           *
+           * 所以叶下留白，答案只由 revealAnswer() 写上 —— 看到的就是动画本身。
+           * currentRight 仍记答案页：翻页结束后右页显示的就是它，下一次
+           * 「再抽一次」的第一张叶子要拿它当正面，才不会出现内容跳变。
+           */
+          var under = isLast ? '' : global.Book.nextFakePage();
+          currentRight = isLast ? answerPage : under;
 
           global.SFX.playFlip(isLast ? 1 : 0.5);
 
           return global.Book.flip({
             front: front,
             back: global.Book.nextFakePage(),
-            under: next,
+            under: under,
             dur: dur,
             onSettled: isLast ? function () {
               global.SFX.playLand();
+              /* 翻页落定的同一帧里写上答案，再让墨迹动画把它显出来 */
+              global.Book.setPage('right', answerPage);
               revealDone = revealAnswer();
             } : null
           }).then(function () {
